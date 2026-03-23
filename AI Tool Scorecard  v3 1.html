@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALinCA · AI Tool Scorecard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0A0F1E;--surface:#111827;--card:#151D2E;
+    --border:rgba(255,255,255,0.07);
+    --accent-blue:#3B82F6;--accent-cyan:#06B6D4;
+    --m365:#00A4EF;--gpt:#10A37F;--claude:#D97757;
+    --text:#F1F5F9;--muted:#64748B;--gold:#F59E0B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;}
+  .container{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:40px 24px 80px;}
+
+  /* BANNER */
+  .dl-banner{background:linear-gradient(90deg,rgba(59,130,246,0.15),rgba(6,182,212,0.1));border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:12px 18px;margin-bottom:32px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;}
+  .dl-banner-icon{font-size:18px;flex-shrink:0;margin-top:2px;}
+  .dl-banner-text{font-size:11px;color:var(--text);line-height:1.7;flex:1;}
+  .dl-banner-text b{color:var(--accent-cyan);}
+  .dl-steps{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px;}
+  .dl-step{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:3px 10px;font-size:10px;color:var(--text);}
+  .dl-num{background:var(--accent-blue);color:#fff;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+  .dl-arr{color:var(--muted);font-size:10px;}
+
+  /* HEADER */
+  .header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:32px;gap:24px;flex-wrap:wrap;}
+  .header-left{display:flex;flex-direction:column;gap:8px;}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);border-radius:4px;padding:4px 10px;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent-blue);width:fit-content;}
+  .badge-dot{width:5px;height:5px;background:var(--accent-blue);border-radius:50%;animation:pulse 2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+  h1{font-family:'Syne',sans-serif;font-size:clamp(28px,4vw,42px);font-weight:800;line-height:1.1;letter-spacing:-0.02em;color:#fff;}
+  h1 span{color:var(--accent-blue);}
+  .subtitle{font-size:12px;color:var(--muted);letter-spacing:0.04em;}
+  .mode-switch{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px;gap:4px;align-self:flex-start;margin-top:8px;}
+  .mode-btn{padding:8px 16px;border:none;border-radius:6px;background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all 0.2s;letter-spacing:0.04em;}
+  .mode-btn.active{background:var(--accent-blue);color:#fff;}
+  .reset-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all 0.2s;letter-spacing:0.04em;}
+  .reset-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--text);}
+
+  /* SCORE CARDS */
+  .scores-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px;}
+  .score-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 20px;position:relative;overflow:hidden;}
+  .score-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+  .score-card.m365::before{background:var(--m365);}
+  .score-card.gpt::before{background:var(--gpt);}
+  .score-card.claude::before{background:var(--claude);}
+  .score-card.winner{border-color:rgba(217,119,87,0.35);background:rgba(217,119,87,0.06);}
+  .score-label{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+  .score-tool{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:16px;}
+  .score-tool.m365{color:var(--m365);}.score-tool.gpt{color:var(--gpt);}.score-tool.claude{color:var(--claude);}
+  .score-number{font-family:'Syne',sans-serif;font-size:44px;font-weight:800;line-height:1;margin-bottom:8px;}
+  .score-bar-wrap{height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;}
+  .score-bar{height:100%;border-radius:2px;transition:width 0.5s cubic-bezier(0.4,0,0.2,1);}
+  .score-bar.m365{background:var(--m365);}.score-bar.gpt{background:var(--gpt);}.score-bar.claude{background:var(--claude);}
+  .winner-tag{position:absolute;top:16px;right:16px;background:var(--gold);color:#000;font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;border-radius:3px;font-family:'Syne',sans-serif;}
+  .rank-indicator{position:absolute;bottom:20px;right:20px;font-size:11px;color:var(--muted);opacity:0.5;}
+
+  /* TABLE */
+  .table-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;}
+  .table-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text);}
+  .author-note{font-size:11px;color:var(--muted);background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:4px;padding:4px 10px;}
+  .author-note span{color:var(--accent-cyan);}
+  .weight-sum-info{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:11px;}
+  .weight-sum-label{color:var(--muted);}
+  .weight-sum-val{font-weight:600;}
+  .weight-sum-val.ok{color:#4ADE80;}.weight-sum-val.warn{color:var(--gold);}.weight-sum-val.err{color:#F87171;}
+  .grid-head{display:grid;grid-template-columns:2.4fr 0.7fr 1fr 1fr 1fr 2.2fr 0px;gap:8px;padding:10px 16px;background:rgba(255,255,255,0.03);border-radius:6px;margin-bottom:6px;}
+  .grid-head.em{grid-template-columns:2.4fr 0.7fr 1fr 1fr 1fr 2.2fr 36px;}
+  .gh-cell{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);}
+  .gh-cell.m365{color:var(--m365);}.gh-cell.gpt{color:var(--gpt);}.gh-cell.claude{color:var(--claude);}
+  .row{display:grid;grid-template-columns:2.4fr 0.7fr 1fr 1fr 1fr 2.2fr 0px;gap:8px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;align-items:start;transition:border-color 0.2s;}
+  .row.em{grid-template-columns:2.4fr 0.7fr 1fr 1fr 1fr 2.2fr 36px;}
+  .row:hover{border-color:rgba(255,255,255,0.12);}
+  .cell-criterion{font-size:12px;color:var(--text);line-height:1.4;padding-right:8px;}
+  .cell-weight{font-size:13px;font-weight:500;color:var(--accent-cyan);text-align:center;}
+  .cell-score{text-align:center;}
+  .score-display{font-size:18px;font-family:'Syne',sans-serif;font-weight:700;line-height:1;}
+  .weighted-display{font-size:10px;color:var(--muted);margin-top:3px;}
+  .cell-note{font-size:11px;color:var(--muted);line-height:1.5;font-style:italic;padding-left:4px;border-left:2px solid rgba(255,255,255,0.06);}
+  .edit-input{width:100%;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:5px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:5px 8px;transition:border-color 0.2s;outline:none;}
+  .edit-input:focus{border-color:var(--accent-blue);}
+  .edit-input.score-inp{text-align:center;font-size:15px;font-family:'Syne',sans-serif;font-weight:700;}
+  .edit-input.weight-inp{text-align:center;color:var(--accent-cyan);}
+  .note-input{resize:none;min-height:52px;font-size:11px;}
+  .row-actions{display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:flex-start;padding-top:2px;}
+  .act-btn{width:26px;height:26px;border:1px solid rgba(255,255,255,0.08);border-radius:5px;background:transparent;color:var(--muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;padding:0;line-height:1;}
+  .act-btn.del:hover{border-color:rgba(248,113,113,0.4);color:#F87171;background:rgba(248,113,113,0.08);}
+  .add-row-btn{width:100%;padding:10px;border:1px dashed rgba(255,255,255,0.12);border-radius:8px;background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all 0.2s;letter-spacing:0.04em;margin-bottom:6px;}
+  .add-row-btn:hover{border-color:rgba(74,222,128,0.3);color:#4ADE80;}
+  .totals-row{display:grid;grid-template-columns:2.4fr 0.7fr 1fr 1fr 1fr 2.2fr;gap:8px;padding:14px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:8px;margin-top:10px;align-items:center;}
+  .totals-label{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
+  .total-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;text-align:center;}
+  .total-val.m365{color:var(--m365);}.total-val.gpt{color:var(--gpt);}.total-val.claude{color:var(--claude);}
+  .rank-tag{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:10px;font-weight:700;font-family:'Syne',sans-serif;margin-right:3px;}
+  .rank-1{background:var(--gold);color:#000;}.rank-2{background:rgba(255,255,255,0.15);color:#fff;}.rank-3{background:rgba(255,255,255,0.07);color:var(--muted);}
+  .diff-tag{font-size:10px;padding:2px 6px;border-radius:3px;margin-left:4px;}
+  .diff-up{background:rgba(74,222,128,0.15);color:#4ADE80;}.diff-down{background:rgba(248,113,113,0.15);color:#F87171;}.diff-same{background:rgba(255,255,255,0.05);color:var(--muted);}
+  .footer-note{margin-top:40px;display:flex;align-items:center;gap:10px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:20px;}
+  .info-cards{margin-top:24px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .info-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;}
+  .info-card-title{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent-cyan);margin-bottom:8px;}
+  .info-card-text{font-size:11px;color:var(--muted);line-height:1.6;}
+  .info-card-text b{color:var(--text);}
+  @media(max-width:700px){.grid-head,.row,.totals-row{grid-template-columns:1fr;}.scores-row,.info-cards{grid-template-columns:1fr;}.gh-cell:not(.gh-criterion){display:none;}}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="dl-banner">
+    <div class="dl-banner-icon">💡</div>
+    <div class="dl-banner-text">
+      <b>How to use this calculator</b> — the file runs locally in your browser, no login required.
+      <div class="dl-steps">
+        <span class="dl-step"><span class="dl-num">1</span>Download from SharePoint</span>
+        <span class="dl-arr">→</span>
+        <span class="dl-step"><span class="dl-num">2</span>Open in Chrome or Edge</span>
+        <span class="dl-arr">→</span>
+        <span class="dl-step"><span class="dl-num">3</span>Click <b style="color:var(--accent-blue)">Edit</b> to customise</span>
+        <span class="dl-arr">→</span>
+        <span class="dl-step"><span class="dl-num">4</span>Scores recalculate instantly</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="header">
+    <div class="header-left">
+      <div class="badge"><span class="badge-dot"></span>ALinCA · C2AI · WS1</div>
+      <h1>AI Tool <span>Scorecard</span></h1>
+      <div class="subtitle">Weighted evaluation · M365 Copilot vs ChatGPT Ent. vs Claude Ent.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+      <div class="mode-switch">
+        <button class="mode-btn active" id="btnView">View</button>
+        <button class="mode-btn" id="btnEdit">✏ Edit</button>
+      </div>
+      <button class="reset-btn" id="btnReset">↺ Reset to aosta defaults</button>
+    </div>
+  </div>
+
+  <div class="scores-row" id="scoresRow"></div>
+
+  <div class="table-header">
+    <div class="table-title">Weighted Criteria</div>
+    <div class="author-note">Baseline scores by <span>@aosta</span> · march 2026</div>
+  </div>
+
+  <div id="weightSumInfo" class="weight-sum-info" style="display:none;">
+    <span class="weight-sum-label">Σ weights =</span>
+    <span id="weightSumVal" class="weight-sum-val">1.00</span>
+    <span id="weightSumMsg" class="weight-sum-label"></span>
+  </div>
+
+  <div class="grid-head" id="gridHead">
+    <div class="gh-cell gh-criterion">Criterion</div>
+    <div class="gh-cell" style="text-align:center">Weight</div>
+    <div class="gh-cell m365" style="text-align:center">M365</div>
+    <div class="gh-cell gpt" style="text-align:center">GPT</div>
+    <div class="gh-cell claude" style="text-align:center">Claude</div>
+    <div class="gh-cell">Notes (aosta)</div>
+    <div class="gh-cell"></div>
+  </div>
+
+  <div id="tableBody"></div>
+  <div id="addRowWrap" style="display:none;">
+    <button class="add-row-btn" id="btnAddRow">＋ Add criterion</button>
+  </div>
+  <div class="totals-row" id="totalsRow"></div>
+
+  <div class="footer-note">
+    <span>🔒 Baseline scores by Andrii Ostapenko (aosta@softserveinc.com)</span>
+    <span style="margin-left:auto;color:rgba(255,255,255,0.15)">ALinCA · SoftServe C2AI</span>
+  </div>
+
+  <div class="info-cards">
+    <div class="info-card">
+      <div class="info-card-title">✏ Edit mode</div>
+      <div class="info-card-text">Switch to <b>Edit</b> to change weights, scores, notes, rename or add/remove criteria. Everything recalculates instantly.</div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-title">⚡ Auto-save</div>
+      <div class="info-card-text">Your changes are saved automatically in the browser. Next time you open the same file, your version is restored — no logins or servers needed.</div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-title">↺ Reset</div>
+      <div class="info-card-text">The <b>Reset to aosta defaults</b> button always restores the original scores by @aosta as a baseline for comparison.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  var LS_KEY = 'alinCA_scorecard_v1';
+
+  var DEFAULTS = [
+    { criterion: "Microsoft ecosystem integration",     weight: 0.13, m: 10, g: 4, c: 4, note: "Claude cannot read .ppt format, yet." },
+    { criterion: "Asana integration",                   weight: 0.12, m: 2,  g: 8, c: 9, note: "Model Context Protocol (MCP) for GPT and Claude" },
+    { criterion: "Teams meeting intelligence",          weight: 0.12, m: 10, g: 3, c: 5, note: "" },
+    { criterion: "PPT creation",                        weight: 0.14, m: 2,  g: 5, c: 7, note: "Claude has nice addon in PowerPoint" },
+    { criterion: "Analytical reasoning, logic quality", weight: 0.19, m: 5,  g: 8, c: 9, note: "" },
+    { criterion: "Projects (context memory)",           weight: 0.14, m: 5,  g: 7, c: 9, note: "Notebook in Copilot; GPT has no external connections to Projects!" },
+    { criterion: "Team work in 1 space",                weight: 0.03, m: 3,  g: 7, c: 7, note: "Copilot shared access to document, not Notebook" },
+    { criterion: "Artifacts (1 document)",              weight: 0.03, m: 5,  g: 5, c: 7, note: "Claude can draw block schemes in chat and have connection to Figma" },
+    { criterion: "Voice communication",                 weight: 0.07, m: 1,  g: 8, c: 4, note: "GPT cannot do actions. Claude — only English, no reply in desktop, need 2 clicks." },
+    { criterion: "Multiplatforming",                    weight: 0.01, m: 8,  g: 6, c: 6, note: "GPT — no desktop for Windows; Claude — no mobile" },
+    { criterion: "Pricing and ease of adoption",        weight: 0.02, m: 5,  g: 6, c: 4, note: "" },
+  ];
+
+  var data = loadData();
+  var mode = 'view';
+
+  function loadData() {
+    try {
+      var s = localStorage.getItem(LS_KEY);
+      if (s) { var d = JSON.parse(s); if (Array.isArray(d) && d.length) return d; }
+    } catch(e) {}
+    return JSON.parse(JSON.stringify(DEFAULTS));
+  }
+
+  function saveData() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch(e) {}
+  }
+
+  function calcW(r) {
+    return { m: +(r.weight*r.m).toFixed(3), g: +(r.weight*r.g).toFixed(3), c: +(r.weight*r.c).toFixed(3) };
+  }
+
+  function calcTotals() {
+    var m=0,g=0,c=0,ws=0;
+    data.forEach(function(r){ var w=calcW(r); m+=w.m; g+=w.g; c+=w.c; ws+=r.weight; });
+    return { m:+m.toFixed(2), g:+g.toFixed(2), c:+c.toFixed(2), wsum:+ws.toFixed(2) };
+  }
+
+  function calcDefTotals() {
+    var m=0,g=0,c=0;
+    DEFAULTS.forEach(function(r){ m+=r.weight*r.m; g+=r.weight*r.g; c+=r.weight*r.c; });
+    return { m:+m.toFixed(2), g:+g.toFixed(2), c:+c.toFixed(2) };
+  }
+
+  function getRanks(t) {
+    var arr=[{k:'m',v:t.m},{k:'g',v:t.g},{k:'c',v:t.c}].sort(function(a,b){return b.v-a.v;});
+    var r={}; arr.forEach(function(x,i){ r[x.k]=i+1; }); return r;
+  }
+
+  function diff(curr, def) {
+    var d=+(curr-def).toFixed(2);
+    if (Math.abs(d)<0.01) return '<span class="diff-tag diff-same">±0</span>';
+    if (d>0) return '<span class="diff-tag diff-up">+'+d+'</span>';
+    return '<span class="diff-tag diff-down">'+d+'</span>';
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function render() {
+    var tot=calcTotals(), ranks=getRanks(tot), max=Math.max(tot.m,tot.g,tot.c);
+    var tools=[{k:'m',label:'M365 Copilot',cls:'m365'},{k:'g',label:'ChatGPT Ent.',cls:'gpt'},{k:'c',label:'Claude Ent.',cls:'claude'}];
+
+    // score cards
+    document.getElementById('scoresRow').innerHTML = tools.map(function(t) {
+      var score=tot[t.k], pct=(score/max*100).toFixed(1), win=ranks[t.k]===1;
+      return '<div class="score-card '+t.cls+(win?' winner':'')+'">'+
+        (win?'<div class="winner-tag">🏆 Winner</div>':'')+
+        '<div class="score-label">Weighted Total</div>'+
+        '<div class="score-tool '+t.cls+'">'+t.label+'</div>'+
+        '<div class="score-number" style="color:var(--'+t.cls+')">'+score.toFixed(2)+'</div>'+
+        '<div class="score-bar-wrap"><div class="score-bar '+t.cls+'" style="width:'+pct+'%"></div></div>'+
+        '<div class="rank-indicator">#'+ranks[t.k]+'</div>'+
+        '</div>';
+    }).join('');
+
+    // weight sum
+    if (mode==='edit') {
+      var ws=tot.wsum, el=document.getElementById('weightSumVal'), msg=document.getElementById('weightSumMsg');
+      el.textContent=ws.toFixed(2);
+      if (Math.abs(ws-1)<0.005){ el.className='weight-sum-val ok'; msg.textContent='✓ balanced'; }
+      else if (Math.abs(ws-1)<0.03){ el.className='weight-sum-val warn'; msg.textContent='⚠ slightly off'; }
+      else { el.className='weight-sum-val err'; msg.textContent="✗ weights don't sum to 1.0"; }
+    }
+
+    // table
+    var tbody=document.getElementById('tableBody');
+    if (mode==='view') {
+      tbody.innerHTML = data.map(function(row) {
+        var w=calcW(row);
+        return '<div class="row">'+
+          '<div class="cell-criterion">'+esc(row.criterion)+'</div>'+
+          '<div class="cell-weight">'+(row.weight*100).toFixed(0)+'%</div>'+
+          '<div class="cell-score"><div class="score-display" style="color:var(--m365)">'+row.m+'</div><div class="weighted-display">'+w.m.toFixed(2)+'</div></div>'+
+          '<div class="cell-score"><div class="score-display" style="color:var(--gpt)">'+row.g+'</div><div class="weighted-display">'+w.g.toFixed(2)+'</div></div>'+
+          '<div class="cell-score"><div class="score-display" style="color:var(--claude)">'+row.c+'</div><div class="weighted-display">'+w.c.toFixed(2)+'</div></div>'+
+          '<div class="cell-note">'+(row.note||'—')+'</div>'+
+          '<div></div>'+
+          '</div>';
+      }).join('');
+    } else {
+      tbody.innerHTML = data.map(function(row, i) {
+        return '<div class="row em">'+
+          '<div><input class="edit-input" data-i="'+i+'" data-k="criterion" value="'+esc(row.criterion)+'" placeholder="Criterion name"/></div>'+
+          '<div><input class="edit-input weight-inp" type="number" min="0" max="1" step="0.01" data-i="'+i+'" data-k="weight" value="'+row.weight+'"/></div>'+
+          '<div><input class="edit-input score-inp" type="number" min="0" max="10" step="1" data-i="'+i+'" data-k="m" value="'+row.m+'" style="color:var(--m365)"/></div>'+
+          '<div><input class="edit-input score-inp" type="number" min="0" max="10" step="1" data-i="'+i+'" data-k="g" value="'+row.g+'" style="color:var(--gpt)"/></div>'+
+          '<div><input class="edit-input score-inp" type="number" min="0" max="10" step="1" data-i="'+i+'" data-k="c" value="'+row.c+'" style="color:var(--claude)"/></div>'+
+          '<div><textarea class="edit-input note-input" data-i="'+i+'" data-k="note" rows="2">'+esc(row.note)+'</textarea></div>'+
+          '<div class="row-actions"><button class="act-btn del" data-del="'+i+'" title="Delete">×</button></div>'+
+          '</div>';
+      }).join('');
+
+      // bind inputs via event delegation
+      tbody.querySelectorAll('.edit-input').forEach(function(el) {
+        el.addEventListener('change', function() {
+          var i=+this.dataset.i, k=this.dataset.k;
+          data[i][k] = (k==='criterion'||k==='note') ? this.value : +this.value;
+          saveData(); render();
+        });
+      });
+      tbody.querySelectorAll('[data-del]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var i=+this.dataset.del;
+          if (data.length>1){ data.splice(i,1); saveData(); render(); }
+        });
+      });
+    }
+
+    // totals
+    var def=calcDefTotals();
+    document.getElementById('totalsRow').innerHTML=
+      '<div class="totals-label">Weighted<br>Total</div>'+
+      '<div></div>'+
+      '<div class="total-val m365">'+tot.m.toFixed(2)+' '+diff(tot.m,def.m)+'</div>'+
+      '<div class="total-val gpt">'+tot.g.toFixed(2)+' '+diff(tot.g,def.g)+'</div>'+
+      '<div class="total-val claude">'+tot.c.toFixed(2)+' '+diff(tot.c,def.c)+'</div>'+
+      '<div style="font-size:11px;color:var(--muted);padding-left:4px;align-self:center;">'+
+        '<span class="rank-tag rank-'+ranks.m+'">'+ranks.m+'</span>M365&nbsp;&nbsp;'+
+        '<span class="rank-tag rank-'+ranks.g+'">'+ranks.g+'</span>GPT&nbsp;&nbsp;'+
+        '<span class="rank-tag rank-'+ranks.c+'">'+ranks.c+'</span>Claude'+
+      '</div>';
+  }
+
+  // buttons
+  document.getElementById('btnView').addEventListener('click', function() {
+    mode='view';
+    document.getElementById('btnView').className='mode-btn active';
+    document.getElementById('btnEdit').className='mode-btn';
+    document.getElementById('weightSumInfo').style.display='none';
+    document.getElementById('addRowWrap').style.display='none';
+    document.getElementById('gridHead').className='grid-head';
+    render();
+  });
+
+  document.getElementById('btnEdit').addEventListener('click', function() {
+    mode='edit';
+    document.getElementById('btnView').className='mode-btn';
+    document.getElementById('btnEdit').className='mode-btn active';
+    document.getElementById('weightSumInfo').style.display='flex';
+    document.getElementById('addRowWrap').style.display='block';
+    document.getElementById('gridHead').className='grid-head em';
+    render();
+  });
+
+  document.getElementById('btnReset').addEventListener('click', function() {
+    data=JSON.parse(JSON.stringify(DEFAULTS));
+    saveData(); render();
+  });
+
+  document.getElementById('btnAddRow').addEventListener('click', function() {
+    data.push({ criterion: "New criterion", weight: 0.00, m: 5, g: 5, c: 5, note: "" });
+    saveData(); render();
+    setTimeout(function() {
+      var inputs=document.querySelectorAll('.edit-input');
+      if (inputs.length) inputs[inputs.length-5].focus();
+    }, 50);
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
